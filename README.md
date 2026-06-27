@@ -116,6 +116,7 @@ fb eval \
 - `fb infer` runs `featurebench.infer.run_infer` (docs: [docs/infer_cli_arg.md](docs/infer_cli_arg.md))
 - `fb eval` runs `featurebench.harness.run_evaluation` (docs: [docs/harness_cli_arg.md](docs/harness_cli_arg.md))
 - `fb data` runs `featurebench.pipeline` (docs: [docs/pipeline.md](docs/pipeline.md))
+- `fb infer` / `fb eval` also accept `--backend modal` to run on Modal Sandbox instead of local Docker (docs: [docs/modal_backend.md](docs/modal_backend.md))
 
 ## ✍️ Citation
 

@@ -184,7 +184,9 @@ class InferConfig:
     api_key: Optional[str] = None
     base_url: Optional[str] = None
     version: Optional[str] = None
-    
+    # Container execution backend: "docker" (local) or "modal" (Modal Sandbox).
+    backend: str = "docker"
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -213,6 +215,7 @@ class InferConfig:
             "api_key": self.api_key,
             "base_url": self.base_url,
             "version": self.version,
+            "backend": self.backend,
         }
 
 
@@ -277,7 +280,9 @@ class RunMetadata:
     base_url: Optional[str] = None
     version: Optional[str] = None
     end_time: Optional[str] = None
-    
+    # Container execution backend: "docker" (local) or "modal" (Modal Sandbox).
+    backend: str = "docker"
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
@@ -308,7 +313,8 @@ class RunMetadata:
             "api_key": self.api_key,
             "base_url": self.base_url,
             "version": self.version,
-            "end_time": self.end_time
+            "end_time": self.end_time,
+            "backend": self.backend
         }
     
     def save(self, path: Path) -> None:

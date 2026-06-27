@@ -38,6 +38,10 @@ fb eval \
   Comma-separated GPU IDs (e.g., `0,1,2,3`).  
   Default: all available.
 
+- `--backend`  
+  Container execution backend: `docker` (local daemon) or `modal` (Modal Sandbox).  
+  Default: `docker`. See [docs/modal_backend.md](modal_backend.md).
+
 - `--proxy-port`  
   Proxy port for container network (host gateway) (e.g., `--proxy-port 7890`).  
   Default: `None`.

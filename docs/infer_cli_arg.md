@@ -110,6 +110,11 @@ flags can override metadata (see the argument list below).
   Default: all available.  
   Resume mode: can override metadata if explicitly provided.
 
+- `--backend`  
+  Container execution backend: `docker` (local daemon) or `modal` (Modal Sandbox).  
+  Default: `docker`. Saved into `run_metadata.json`; resume reuses it.  
+  See [docs/modal_backend.md](modal_backend.md).
+
 - `--force-timeout`  
   If a task run times out (`infer.log` contains `[TIMEOUT after ... seconds]`), treat that attempt as successful instead of failed.  
   Default: disabled.  

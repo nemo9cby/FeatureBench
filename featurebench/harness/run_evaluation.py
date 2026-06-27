@@ -444,6 +444,7 @@ def run_instance(
     force_rerun_ids: set[str] | None = None,
     running_tasks_tracker: RunningTasksTracker | None = None,
     container_cleanup: EvalContainerCleanup | None = None,
+    backend: str = "docker",
 ) -> dict[str, Any]:
     """
     Run evaluation for a single instance.
@@ -516,7 +517,11 @@ def run_instance(
 
     container = None
     gpu_lease: GpuLease | None = None
-    container_manager = EvalContainerManager(logger)
+    if backend == "modal":
+        from featurebench.harness.modal_container import ModalEvalContainerManager
+        container_manager = ModalEvalContainerManager(logger)
+    else:
+        container_manager = EvalContainerManager(logger)
 
     try:
         if running_tasks_tracker is not None:
@@ -535,9 +540,12 @@ def run_instance(
                     f"env_vars={list(docker_runtime_config.get('env_vars', {}).keys())}, "
                     f"env_exports={len(docker_runtime_config.get('env_exports', []))} items")
 
-        # Allocate GPUs for this instance if needed.
+        # Allocate GPUs for this instance if needed. On the Modal backend the GPU is
+        # provided by the sandbox (gpu=...), so the local host-GPU scheduler is bypassed.
         task_gpu_ids = gpu_ids
-        if docker_runtime_config.get("need_gpu") and gpu_scheduler is not None:
+        if backend == "modal":
+            pass
+        elif docker_runtime_config.get("need_gpu") and gpu_scheduler is not None:
             requested = docker_runtime_config.get("number_once", 1)
             if not isinstance(requested, int) or requested <= 0:
                 requested = 1
@@ -855,6 +863,13 @@ def parse_args() -> argparse.Namespace:
         help="Comma-separated GPU IDs to use (e.g., '0,1' or '2,3')",
     )
     parser.add_argument(
+        "--backend",
+        type=str,
+        choices=["docker", "modal"],
+        default="docker",
+        help="Container execution backend: 'docker' (local daemon) or 'modal' (Modal Sandbox). Default: docker",
+    )
+    parser.add_argument(
         "--review-codes",
         type=lambda x: x.lower() in ['true', '1', 'yes'],
         default=False,
@@ -1162,6 +1177,7 @@ def main():
                     force_rerun_ids,
                     running_tasks_tracker,
                     container_cleanup,
+                    args.backend,
                 )
                 futures[future] = instance[KEY_INSTANCE_ID]
 

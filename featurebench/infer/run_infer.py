@@ -493,6 +493,17 @@ class InferenceRunner:
             "featurebench.purpose": purpose,
         }
 
+    def _make_container_manager(self, logger, env_vars):
+        """Return the container manager for the configured backend.
+
+        ModalContainerManager is imported lazily so the default docker path
+        never requires the `modal` package to be installed.
+        """
+        if getattr(self.config, "backend", "docker") == "modal":
+            from featurebench.infer.modal_container import ModalContainerManager
+            return ModalContainerManager(logger, env_vars)
+        return ContainerManager(logger, env_vars)
+
     def _register_container(self, container: Container) -> None:
         container_id = getattr(container, "id", None)
         if not container_id:
@@ -799,7 +810,7 @@ class InferenceRunner:
                 )
 
             # Create container manager with task-specific logger/env.
-            cm = ContainerManager(task_logger, task_agent_env_vars)
+            cm = self._make_container_manager(task_logger, task_agent_env_vars)
             
             # Pull image if needed
             task_logger.info(f"Ensuring image {image_name} is available...")
@@ -968,7 +979,7 @@ class InferenceRunner:
             if self._shutdown_requested.is_set():
                 return
 
-            cm = ContainerManager(task_logger, self.agent_env_vars)
+            cm = self._make_container_manager(task_logger, self.agent_env_vars)
             cm.pull_image(image_name)
 
             if self._shutdown_requested.is_set():
@@ -1097,6 +1108,7 @@ class InferenceRunner:
             api_key=self.config.api_key,
             base_url=self.config.base_url,
             version=self.config.version,
+            backend=getattr(self.config, "backend", "docker"),
         )
         self.output_manager.save_metadata(metadata)
     
@@ -1658,7 +1670,15 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Comma-separated GPU IDs to use (e.g., '0,1,2,3'). Default: all available GPUs"
     )
-    
+
+    parser.add_argument(
+        "--backend",
+        type=str,
+        choices=["docker", "modal"],
+        default="docker",
+        help="Container execution backend: 'docker' (local daemon) or 'modal' (Modal Sandbox). Default: docker"
+    )
+
     parser.add_argument(
         "--resume",
         type=str,
@@ -1858,8 +1878,9 @@ def load_resume_config(resume_dir: Path, args: argparse.Namespace) -> Tuple[Infe
         api_key=api_key,
         base_url=base_url,
         version=version,
+        backend=metadata.get("backend", "docker"),
     )
-    
+
     return config, resume_dir
 
 
@@ -1938,8 +1959,9 @@ def main() -> int:
             api_key=args.api_key,
             base_url=args.base_url,
             version=args.version,
+            backend=args.backend,
         )
-        
+
         # Run inference
         runner = InferenceRunner(config, config_path=config_path)
         return runner.run()
