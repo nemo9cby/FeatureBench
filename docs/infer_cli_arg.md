@@ -115,6 +115,11 @@ flags can override metadata (see the argument list below).
   Default: `docker`. Saved into `run_metadata.json`; resume reuses it.  
   See [docs/modal_backend.md](modal_backend.md).
 
+- `--force-cpu`  
+  Run tasks on CPU even if tagged `need_gpu` (overrides `need_gpu` to false).  
+  Useful on hosts without a GPU when the task does not actually require one.  
+  Default: disabled.
+
 - `--force-timeout`  
   If a task run times out (`infer.log` contains `[TIMEOUT after ... seconds]`), treat that attempt as successful instead of failed.  
   Default: disabled.  

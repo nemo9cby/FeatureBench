@@ -777,6 +777,11 @@ class InferenceRunner:
             
             # Get docker runtime config from repo_settings
             docker_runtime_config = instance.get_docker_runtime_config()
+            # --force-cpu: run on CPU even if the task is tagged need_gpu (useful on
+            # hosts without a GPU when the task does not actually require one).
+            if getattr(self.config, "force_cpu", False) and docker_runtime_config.get("need_gpu"):
+                task_logger.info("force_cpu enabled: overriding need_gpu=False for this task")
+                docker_runtime_config = {**docker_runtime_config, "need_gpu": False}
             task_logger.info(f"Docker runtime config: need_gpu={docker_runtime_config.get('need_gpu')}, "
                            f"shm_size={docker_runtime_config.get('shm_size')}, "
                            f"number_once={docker_runtime_config.get('number_once')}, "
@@ -1680,6 +1685,12 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--force-cpu",
+        action="store_true",
+        help="Run tasks on CPU even if tagged need_gpu (useful on hosts without a GPU when the task does not actually require one)."
+    )
+
+    parser.add_argument(
         "--resume",
         type=str,
         default=None,
@@ -1960,6 +1971,7 @@ def main() -> int:
             base_url=args.base_url,
             version=args.version,
             backend=args.backend,
+            force_cpu=args.force_cpu,
         )
 
         # Run inference

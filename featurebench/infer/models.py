@@ -186,6 +186,8 @@ class InferConfig:
     version: Optional[str] = None
     # Container execution backend: "docker" (local) or "modal" (Modal Sandbox).
     backend: str = "docker"
+    # Force CPU even for tasks tagged need_gpu (for GPU-less hosts).
+    force_cpu: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -216,6 +218,7 @@ class InferConfig:
             "base_url": self.base_url,
             "version": self.version,
             "backend": self.backend,
+            "force_cpu": self.force_cpu,
         }
 
 

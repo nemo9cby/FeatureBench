@@ -42,6 +42,11 @@ fb eval \
   Container execution backend: `docker` (local daemon) or `modal` (Modal Sandbox).  
   Default: `docker`. See [docs/modal_backend.md](modal_backend.md).
 
+- `--force-cpu`  
+  Run tasks on CPU even if tagged `need_gpu` (overrides `need_gpu` to false).  
+  Useful on hosts without a GPU when the task does not actually require one.  
+  Default: disabled.
+
 - `--proxy-port`  
   Proxy port for container network (host gateway) (e.g., `--proxy-port 7890`).  
   Default: `None`.

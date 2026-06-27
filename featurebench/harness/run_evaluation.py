@@ -445,6 +445,7 @@ def run_instance(
     running_tasks_tracker: RunningTasksTracker | None = None,
     container_cleanup: EvalContainerCleanup | None = None,
     backend: str = "docker",
+    force_cpu: bool = False,
 ) -> dict[str, Any]:
     """
     Run evaluation for a single instance.
@@ -535,6 +536,10 @@ def run_instance(
         if not docker_runtime_config:
             repo_settings = parse_repo_settings(instance)
             docker_runtime_config = get_docker_runtime_config(repo_settings)
+        # --force-cpu: run on CPU even if the task is tagged need_gpu.
+        if force_cpu and docker_runtime_config.get("need_gpu"):
+            logger.info("force_cpu enabled: overriding need_gpu=False for this task")
+            docker_runtime_config = {**docker_runtime_config, "need_gpu": False}
         logger.info(f"Docker runtime config: shm_size={docker_runtime_config.get('shm_size')}, "
                     f"number_once={docker_runtime_config.get('number_once')}, "
                     f"env_vars={list(docker_runtime_config.get('env_vars', {}).keys())}, "
@@ -870,6 +875,11 @@ def parse_args() -> argparse.Namespace:
         help="Container execution backend: 'docker' (local daemon) or 'modal' (Modal Sandbox). Default: docker",
     )
     parser.add_argument(
+        "--force-cpu",
+        action="store_true",
+        help="Run tasks on CPU even if tagged need_gpu (useful on hosts without a GPU when the task does not actually require one).",
+    )
+    parser.add_argument(
         "--review-codes",
         type=lambda x: x.lower() in ['true', '1', 'yes'],
         default=False,
@@ -1178,6 +1188,7 @@ def main():
                     running_tasks_tracker,
                     container_cleanup,
                     args.backend,
+                    args.force_cpu,
                 )
                 futures[future] = instance[KEY_INSTANCE_ID]
 
