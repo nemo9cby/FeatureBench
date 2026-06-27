@@ -35,6 +35,10 @@ _DEFAULT_SANDBOX_TIMEOUT = 4 * 60 * 60
 # key "FB_MODAL_GPU" (e.g. "A100", "A100-80GB", "H100", "L40S").
 _DEFAULT_GPU_TYPE = "A100"
 
+# Default memory (MB) requested per sandbox. Generous to avoid OOM-killing the
+# agent process (exit 137) on memory-heavy runs. Overridable via "FB_MODAL_MEMORY".
+_DEFAULT_MEMORY_MB = 16384
+
 
 class ModalContainer:
     """Shim wrapping a modal.Sandbox to look enough like a docker-py Container.
@@ -54,6 +58,21 @@ class ModalContainer:
     def reload(self) -> None:
         # Modal has no per-call refresh we need; cleanup tolerates this being a no-op.
         return None
+
+    def exec_run(self, cmd, **kwargs):
+        """docker-py-compatible exec_run: returns (exit_code, output_bytes).
+
+        Some agents (e.g. openhands) call container.exec_run(...) directly to read
+        env / mark session state, so the infer container shim must support it too.
+        """
+        if isinstance(cmd, str):
+            cmd = ["bash", "-lc", cmd]
+        proc = self.sandbox.exec(*cmd)
+        out = proc.stdout.read()
+        err = proc.stderr.read()
+        proc.wait()
+        combined = (out or "") + (err or "")
+        return proc.returncode, combined.encode("utf-8", errors="replace")
 
     def stop(self, timeout: int = 10) -> None:
         self._terminate()
@@ -161,6 +180,13 @@ class ModalContainerManager:
             "timeout": self.sandbox_timeout,
             "workdir": working_dir,
         }
+        # Memory (MB): give generous headroom so the agent process is not OOM-killed
+        # (exit 137) on memory-heavy runs. Overridable via FB_MODAL_MEMORY.
+        try:
+            mem_mb = int(self.env_vars.get("FB_MODAL_MEMORY") or _DEFAULT_MEMORY_MB)
+        except (TypeError, ValueError):
+            mem_mb = _DEFAULT_MEMORY_MB
+        create_kwargs["memory"] = mem_mb
         if str_env:
             create_kwargs["secrets"] = [modal.Secret.from_dict(str_env)]
         if gpu_spec:
