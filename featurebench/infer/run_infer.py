@@ -1890,6 +1890,7 @@ def load_resume_config(resume_dir: Path, args: argparse.Namespace) -> Tuple[Infe
         base_url=base_url,
         version=version,
         backend=metadata.get("backend", "docker"),
+        force_cpu=bool(getattr(args, "force_cpu", False)),
     )
 
     return config, resume_dir
